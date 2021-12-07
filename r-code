@@ -1,0 +1,31 @@
+library(dplyr)
+
+#firm_id = unique identifier of a company
+#corp_id = unique identifier of a corporate group
+#df1 = a panel dataset of Finnish companies and corresponding corporate parents at the annual level
+#NACE02 = the NACE Rev. 2 industry classification
+
+#Create all NACE02 pairings and collapse
+df2 <- df1 %>% full_join(df1, by = c("corp_id","vuosi")) %>% 
+group_by(NACE02.x, NACE02.y) %>%
+filter(firm.id.x!=firm.id.y) %>% #remove pairs of same firm
+mutate(pair = paste(NACE02.x, NACE02.y, sep=""))
+
+#Create firm pairs and reverse pairs
+df2$firm.pair <- paste(df2$firm_id.x, df2$firm_id.y, sep = "")
+df2$firm.pair.r <- paste(df2$firm_id.y, df2$firm_id.x, sep = "")
+
+#Remove duplicate pairs within corporate group - year
+df2$same.NACE02 <- ifelse(df2$NACE02.x==df2$NACE02.y, 1, 0)
+df2 <- df2 %>% rowwise() %>% mutate(min.pair = min(firm.pair, firm.pair.r))
+df2 <- df2 %>% group_by(corp_id, vuosi, min.pair) %>% mutate(dup = row_number())
+df2$drop <- ifelse(df2$same.NACE02==1 & df2$dup>1, 1, 0)
+df3 <- subset(df2, df2$drop == 0)
+
+#Calculate frequency of occurrence for each NACE02 pair
+df3$N <- 1
+df4 <- aggregate(N ~ NACE02.x + pair, df3, sum)
+df4 <- df4 %>% group(NACE02.x) %>% add_tally(N)
+df4 <- df4 %>% arrange(NACE02.x)
+df4$relatedness_score <- df4$N / df4$n
+
