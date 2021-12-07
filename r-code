@@ -29,3 +29,4 @@ df4 <- df4 %>% group(NACE02.x) %>% add_tally(N)
 df4 <- df4 %>% arrange(NACE02.x)
 df4$relatedness_score <- df4$N / df4$n
 
+#Depending on use, one can then compare scores across years (Bryce and Winter, 2009) or within years (Cetorelli, Jacobides and Stern, 2021).
